@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Converter</title>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Temperature Converter</h1>
+            <p class="subtitle">Modern precision temperature conversion</p>
+        </div>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label class="label">Temperature Value</label>
+                <input type="number" class="input-field" id="temperature" 
+                       placeholder="Enter temperature" step="any">
+            </div>
+            
+            <div class="input-group">
+                <label class="label">Input Unit</label>
+                <div class="unit-selector">
+                    <div class="unit-option selected" data-unit="celsius">
+                        <input type="radio" id="celsius" name="unit" value="celsius" checked>
+                        <div class="unit-symbol">°C</div>
+                        <label class="unit-label" for="celsius">Celsius</label>
+                    </div>
+                    <div class="unit-option" data-unit="fahrenheit">
+                        <input type="radio" id="fahrenheit" name="unit" value="fahrenheit">
+                        <div class="unit-symbol">°F</div>
+                        <label class="unit-label" for="fahrenheit">Fahrenheit</label>
+                    </div>
+                    <div class="unit-option" data-unit="kelvin">
+                        <input type="radio" id="kelvin" name="unit" value="kelvin">
+                        <div class="unit-symbol">K</div>
+                        <label class="unit-label" for="kelvin">Kelvin</label>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="convert-button" onclick="convertTemperature()">
+                Convert Temperature
+            </button>
+        </div>
+        
+        <div class="result-section" id="result">
+            <div class="result-content">
+                <div class="placeholder-text">Enter a temperature and select unit to convert</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Unit selection handling
+        document.querySelectorAll('.unit-option').forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                document.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Check the radio button
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+                
+                // Clear result when unit changes
+                resetResult();
+            });
+        });
+
+        function convertTemperature() {
+            const temperatureInput = document.getElementById('temperature');
+            const resultSection = document.getElementById('result');
+            const selectedUnit = document.querySelector('input[name="unit"]:checked').value;
+            
+            // Reset result styling
+            resultSection.classList.remove('error');
+            
+            // Get and validate input
+            const inputValue = temperatureInput.value.trim();
+            
+            if (inputValue === '') {
+                showError('Please enter a temperature value');
+                return;
+            }
+            
+            const temperature = parseFloat(inputValue);
+            
+            if (isNaN(temperature)) {
+                showError('Please enter a valid number');
+                return;
+            }
+            
+            // Validate absolute zero limits
+            const validationResult = validateTemperature(temperature, selectedUnit);
+            if (!validationResult.valid) {
+                showError(validationResult.message);
+                return;
+            }
+            
+            // Perform conversions
+            const conversions = performConversions(temperature, selectedUnit);
+            
+            // Display results
+            displayResults(temperature, selectedUnit, conversions);
+        }
+
+        function validateTemperature(temp, unit) {
+            const limits = {
+                celsius: { min: -273.15, name: 'Celsius' },
+                fahrenheit: { min: -459.67, name: 'Fahrenheit' },
+                kelvin: { min: 0, name: 'Kelvin' }
+            };
+            
+            const limit = limits[unit];
+            if (temp < limit.min) {
+                return {
+                    valid: false,
+                    message: `Temperature cannot be below absolute zero (${limit.min}° ${limit.name})`
+                };
+            }
+            
+            return { valid: true };
+        }
+
+        function performConversions(temp, fromUnit) {
+            let celsius, fahrenheit, kelvin;
+            
+            // Convert to Celsius first
+            switch (fromUnit) {
+                case 'celsius':
+                    celsius = temp;
+                    break;
+                case 'fahrenheit':
+                    celsius = (temp - 32) * 5/9;
+                    break;
+                case 'kelvin':
+                    celsius = temp - 273.15;
+                    break;
+            }
+            
+            // Convert from Celsius to other units
+            fahrenheit = (celsius * 9/5) + 32;
+            kelvin = celsius + 273.15;
+            
+            return {
+                celsius: celsius,
+                fahrenheit: fahrenheit,
+                kelvin: kelvin
+            };
+        }
+
+        function displayResults(originalTemp, originalUnit, conversions) {
+            const resultSection = document.getElementById('result');
+            const units = {
+                celsius: { symbol: '°C', name: 'Celsius' },
+                fahrenheit: { symbol: '°F', name: 'Fahrenheit' },
+                kelvin: { symbol: 'K', name: 'Kelvin' }
+            };
+            
+            // Create conversion items for the other two units
+            const otherUnits = Object.keys(units).filter(unit => unit !== originalUnit);
+            
+            const conversionItems = otherUnits.map(unit => {
+                const value = conversions[unit];
+                return `
+                    <div class="conversion-item">
+                        <div class="conversion-value">${value.toFixed(2)}${units[unit].symbol}</div>
+                        <div class="conversion-unit">${units[unit].name}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            resultSection.innerHTML = `
+                <div class="result-content">
+                    <div class="result-primary">
+                        ${originalTemp}${units[originalUnit].symbol} converts to:
+                    </div>
+                    <div class="result-conversions">
+                        ${conversionItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const resultSection = document.getElementById('result');
+            resultSection.classList.add('error');
+            resultSection.innerHTML = `
+                <div class="result-content">
+                    <div class="result-primary">${message}</div>
+                </div>
+            `;
+        }
+
+        function resetResult() {
+            const resultSection = document.getElementById('result');
+            resultSection.classList.remove('error');
+            resultSection.innerHTML = `
+                <div class="result-content">
+                    <div class="placeholder-text">Enter a temperature and select unit to convert</div>
+                </div>
+            `;
+        }
+
+        // Event listeners
+        document.getElementById('temperature').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                convertTemperature();
+            }
+        });
+
+        document.getElementById('temperature').addEventListener('input', resetResult);
+    </script>
+</body>
+</body>
+</html>
